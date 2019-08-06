@@ -32,6 +32,7 @@ CBUUID *blueGigaServiceUUID;
 CBUUID *hm10ServiceUUID;
 CBUUID *hc02ServiceUUID;
 CBUUID *hc02AdvUUID;
+CBUUID *microshipServiceUUID;
 CBUUID *serialServiceUUID;
 CBUUID *readCharacteristicUUID;
 CBUUID *writeCharacteristicUUID;
@@ -185,6 +186,8 @@ CBUUID *writeCharacteristicUUID;
     else if ((characteristic.properties & CBCharacteristicPropertyWriteWithoutResponse) == CBCharacteristicPropertyWriteWithoutResponse) {
         [p writeValue:data forCharacteristic:characteristic type:CBCharacteristicWriteWithoutResponse];
     }
+    // Characteristic sometimes needs to wake up with a read.
+    [self read];
 }
 
 -(UInt16) swap:(UInt16)s
@@ -218,8 +221,9 @@ CBUUID *writeCharacteristicUUID;
     hm10ServiceUUID = [CBUUID UUIDWithString:@HM10_SERVICE_UUID];
     hc02ServiceUUID = [CBUUID UUIDWithString:@HC02_SERVICE_UUID];
     hc02AdvUUID = [CBUUID UUIDWithString:@HC02_ADV_UUID];
+    microshipServiceUUID = [CBUUID UUIDWithString:@MICROCHIP_SERVICE_UUID];
     NSArray *services = @[redBearLabsServiceUUID, adafruitServiceUUID, lairdServiceUUID, blueGigaServiceUUID, hm10ServiceUUID, 
-                        hc02AdvUUID];
+                        hc02AdvUUID, microshipServiceUUID];
     [self.CM scanForPeripheralsWithServices:services options: nil];
 #else
     [self.CM scanForPeripheralsWithServices:nil options:nil]; // Start scanning
@@ -532,7 +536,13 @@ static bool done = false;
         // Determine if we're connected to Red Bear Labs, Adafruit or Laird hardware
         for (CBService *service in peripheral.services) {
 
-            if ([service.UUID isEqual:redBearLabsServiceUUID]) {
+            if ([service.UUID isEqual:microshipServiceUUID]) {
+                NSLog(@"MICROCHIP RN4678 Service");
+                serialServiceUUID = microshipServiceUUID;
+                readCharacteristicUUID = [CBUUID UUIDWithString:@MICROCHIP_CHAR_TX_UUID];
+                writeCharacteristicUUID = [CBUUID UUIDWithString:@MICROCHIP_CHAR_RX_UUID];
+                break;
+            } else if ([service.UUID isEqual:redBearLabsServiceUUID]) {
                 NSLog(@"RedBearLabs Bluetooth");
                 serialServiceUUID = redBearLabsServiceUUID;
                 readCharacteristicUUID = [CBUUID UUIDWithString:@RBL_CHAR_TX_UUID];
@@ -603,7 +613,7 @@ static bool done = false;
 
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
 {
-    unsigned char data[20];
+    unsigned char data[512];
 
     static unsigned char buf[512];
     static int len = 0;
@@ -616,25 +626,11 @@ static bool done = false;
             data_len = characteristic.value.length;
             [characteristic.value getBytes:data length:data_len];
 
-            if (data_len == 20)
-            {
-                memcpy(&buf[len], data, 20);
-                len += data_len;
+            memcpy(&buf[len], data, data_len);
+            len += data_len;
 
-                if (len >= 64)
-                {
-                    [[self delegate] bleDidReceiveData:buf length:len];
-                    len = 0;
-                }
-            }
-            else if (data_len < 20)
-            {
-                memcpy(&buf[len], data, data_len);
-                len += data_len;
-
-                [[self delegate] bleDidReceiveData:buf length:len];
-                len = 0;
-            }
+            [[self delegate] bleDidReceiveData:buf length:len];
+            len = 0;
         }
     }
     else
