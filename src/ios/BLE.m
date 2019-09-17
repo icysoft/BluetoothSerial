@@ -213,21 +213,7 @@ CBUUID *writeCharacteristicUUID;
 
     [NSTimer scheduledTimerWithTimeInterval:(float)timeout target:self selector:@selector(scanTimer:) userInfo:nil repeats:NO];
 
-#if TARGET_OS_IPHONE
-    redBearLabsServiceUUID = [CBUUID UUIDWithString:@RBL_SERVICE_UUID];
-    adafruitServiceUUID = [CBUUID UUIDWithString:@ADAFRUIT_SERVICE_UUID];
-    lairdServiceUUID = [CBUUID UUIDWithString:@LAIRD_SERVICE_UUID];
-    blueGigaServiceUUID = [CBUUID UUIDWithString:@BLUEGIGA_SERVICE_UUID];
-    hm10ServiceUUID = [CBUUID UUIDWithString:@HM10_SERVICE_UUID];
-    hc02ServiceUUID = [CBUUID UUIDWithString:@HC02_SERVICE_UUID];
-    hc02AdvUUID = [CBUUID UUIDWithString:@HC02_ADV_UUID];
-    microshipServiceUUID = [CBUUID UUIDWithString:@MICROCHIP_SERVICE_UUID];
-    NSArray *services = @[redBearLabsServiceUUID, adafruitServiceUUID, lairdServiceUUID, blueGigaServiceUUID, hm10ServiceUUID, 
-                        hc02AdvUUID, microshipServiceUUID];
-    [self.CM scanForPeripheralsWithServices:services options: nil];
-#else
     [self.CM scanForPeripheralsWithServices:nil options:nil]; // Start scanning
-#endif
 
     NSLog(@"scanForPeripheralsWithServices");
 
@@ -533,6 +519,15 @@ static bool done = false;
 {
     if (!error)
     {
+        redBearLabsServiceUUID = [CBUUID UUIDWithString:@RBL_SERVICE_UUID];
+        adafruitServiceUUID = [CBUUID UUIDWithString:@ADAFRUIT_SERVICE_UUID];
+        lairdServiceUUID = [CBUUID UUIDWithString:@LAIRD_SERVICE_UUID];
+        blueGigaServiceUUID = [CBUUID UUIDWithString:@BLUEGIGA_SERVICE_UUID];
+        hm10ServiceUUID = [CBUUID UUIDWithString:@HM10_SERVICE_UUID];
+        hc02ServiceUUID = [CBUUID UUIDWithString:@HC02_SERVICE_UUID];
+        hc02AdvUUID = [CBUUID UUIDWithString:@HC02_ADV_UUID];
+        microshipServiceUUID = [CBUUID UUIDWithString:@MICROCHIP_SERVICE_UUID];
+
         // Determine if we're connected to Red Bear Labs, Adafruit or Laird hardware
         for (CBService *service in peripheral.services) {
 
